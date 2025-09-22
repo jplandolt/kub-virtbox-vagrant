@@ -186,6 +186,7 @@ if [[ ${param_str} = @(worker|cplane) ]]; then
     if [ "${param_str}" == "cplane" ]; then
         dashboard_on_control_plane
     fi
+
     dashboard_user_create
     dashboard_port_forward
 fi
