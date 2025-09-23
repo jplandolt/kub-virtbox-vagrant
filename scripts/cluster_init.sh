@@ -81,7 +81,7 @@ function verify_controlplane_state {
         retries=0
     fi
     interval=5
-    kube_services="kube-proxy kube-scheduler kube-apiserver kube-controller-manager etcdx"
+    kube_services="kube-proxy kube-scheduler kube-apiserver kube-controller-manager etcd"
 
     # Loop to handle retries (from 0 to 2)
     # 0 retries means that this check happens once with no delay
