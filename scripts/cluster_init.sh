@@ -3,7 +3,7 @@
 # Script to Initialize the Control Plane
 #
 # Grab the kubernetes service images
-# init the service, specifing the base CIDR 
+# init the service, specifing the base CIDR
 # copy the kube config to the user directory
 # install the WEAVE CNI service
 #
@@ -21,6 +21,7 @@
 # 🤷 Something missing
 # 🔥 Creating something
 # 👍 Startup
+# ⏳ Waiting
 # 🔄 Restarting
 #
 
@@ -59,6 +60,10 @@ function kube_sanity_check {
 
 # Verify that the api server is up and running ?
 # or all are down
+#
+# Param 1 - "up" or "down"
+# Param 2 - optional - "retry" for a retry loop
+#
 function verify_controlplane_state {
     D_SOC=unix:///var/run/containerd/containerd.sock
 
@@ -68,37 +73,63 @@ function verify_controlplane_state {
        exit 1
     fi
 
-    echo "🔍 Verify Kubernetes Services run state is '${state_check}'"
-    kube_services="kube-proxy kube-scheduler kube-apiserver kube-controller-manager etcd"
+    # Option to allow for delayed retries
+    # to allow for services to start up
+    if [ "${2,,}" == "retry" ]; then
+        retries=2
+    else
+        retries=0
+    fi
+    interval=5
+    kube_services="kube-proxy kube-scheduler kube-apiserver kube-controller-manager etcdx"
 
-    # Check state of each service
-    for kubsvc in $(echo ${kube_services}); do
-        SVC_STATE=$(sudo crictl --runtime-endpoint ${D_SOC} ps -o json --name "${kubsvc}" 2>/dev/null | jq -r ".containers[] | select(.metadata.name == \"${kubsvc}\") | .state")
+    # Loop to handle retries (from 0 to 2)
+    # 0 retries means that this check happens once with no delay
+    while [ ${retries} -ge 0 ]; do
+        echo "🔍 Verify Kubernetes Services run state is '${state_check}'"
 
-        if   [ "${SVC_STATE}" == "CONTAINER_RUNNING" ]; then
-            echo "  🔍 Service '${kubsvc}' is up and running"
-	    ksvcup=y
-        elif [ "${SVC_STATE}" == "" ]; then
-            echo "  🔍 Service '${kubsvc}' is not running"
-	    ksvcdown=y
+        # Check state of each service
+        for kubsvc in $(echo ${kube_services}); do
+            SVC_STATE=$(sudo crictl --runtime-endpoint ${D_SOC} ps -o json --name "${kubsvc}" 2>/dev/null | jq -r ".containers[] | select(.metadata.name == \"${kubsvc}\") | .state")
+
+            if   [ "${SVC_STATE}" == "CONTAINER_RUNNING" ]; then
+                echo "  🔍 Service '${kubsvc}' is up and running"
+                ksvcup=y
+            elif [ "${SVC_STATE}" == "" ]; then
+                echo "  🔍 Service '${kubsvc}' is not running"
+                ksvcdown=y
+            else
+                echo "  🔍 Service '${kubsvc}' is not running. State: '${SVC_STATE}'"
+                ksvcdown=y
+            fi
+        done
+
+        state_check="${1,,}"
+        if [ "${ksvcup}" == "y" ] && [ "${ksvcdown}" == "y" ] ; then
+            echo "❌ Uncertain state - some Kubernetes services are Up while others are Down"
+            exit_state=1
+        elif [ "${state_check}" == "up" ] && [ "${ksvcdown}" == "y" ] ; then
+            echo "❌ Expected state is UP but one or more kubernetes services are not running"
+            exit_state=1
+        elif [ "${state_check}" == "down" ] && [ "${ksvcup}" == "y" ] ; then
+            echo "❌ Expected state is DOWN but one or more kubernetes services are running"
+            exit_state=1
         else
-            echo "  🔍 Service '${kubsvc}' is not running. State: '${SVC_STATE}'"
-	    ksvcdown=y
+            echo "✅ Kubernetes Services in expected state: '${state_check}'"
         fi
+
+        # If there is a retry to be had, notify, delay, and repeat
+        retries=$((retries - 1))
+        if [ ${retries} -ge 0 ]; then
+        echo "⏳ Retry requested after ${interval} second delay"
+            sleep ${interval}
+        echo ""
+    fi
     done
 
-    state_check="${1,,}"
-    if [ "${ksvcup}" == "y" ] && [ "${ksvcdown}" == "y" ] ; then
-        echo "❌ Uncertain state - some Kubernetes services are Up while others are Down"
+    # didn't work; exit out
+    if [ "${exit_state}" == "1" ] ; then
         exit 1
-    elif [ "${state_check}" == "up" ] && [ "${ksvcdown}" == "y" ] ; then
-        echo "❌ Expected state is UP but one or more kubernetes services are not running"
-        exit 1
-    elif [ "${state_check}" == "down" ] && [ "${ksvcup}" == "y" ] ; then
-        echo "❌ Expected state is DOWN but one or more kubernetes services are running"
-        exit 1
-    else
-        echo "✅ Kubernetes Services in expected state: '${state_check}'"
     fi
 }
 
@@ -167,5 +198,5 @@ kube_sanity_check
 verify_controlplane_state down
 controlplane_init
 kubeconf_copy
-verify_controlplane_state up
+verify_controlplane_state up retry
 weave_install
