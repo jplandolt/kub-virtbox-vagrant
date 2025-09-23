@@ -16,7 +16,7 @@ for node_name in `echo ${kub_nodes_json} | jq -r '.items[] | select(.metadata.na
         echo "⚙️  set worker node role for '${node_name}'"
         kubectl label --overwrite node ${node_name} node-role.kubernetes.io/worker=worker >/dev/null
    else
-        echo "  role 'worker' already set for node '${node_name}'" 
+        echo "  role 'worker' already set for node '${node_name}'"
    fi
 done
 
