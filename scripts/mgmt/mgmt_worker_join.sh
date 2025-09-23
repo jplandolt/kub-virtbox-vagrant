@@ -67,9 +67,9 @@ function worker_join {
                 echo "  '${wnode}' is already attached to the control plane"
             else
                 echo "  '${wnode}' can attach to the control plane - attaching"
-#                vagrant ssh ${wnode} -c "sudo ${cplane_join_cmd}"
-#                vagrant ssh ${wnode} -c "mkdir -p .kube"
-#                vagrant upload ${cplane_kube_cfg} .kube/config ${wnode}
+                vagrant ssh ${wnode} -c "sudo ${cplane_join_cmd}"
+                vagrant ssh ${wnode} -c "mkdir -p .kube"
+                vagrant upload ${cplane_kube_cfg} .kube/config ${wnode}
             fi
 
             echo "🔍 Verifying node '${wnode}' has joined the cluster"
