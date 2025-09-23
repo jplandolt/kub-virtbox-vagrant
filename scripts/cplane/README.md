@@ -17,7 +17,7 @@ This project sets up a local Kubernetes cluster using Vagrant and VirtualBox. It
     <td>Initialize the Kubernetes Cluster and install the Weave CNI</td>
 </tr>
 <tr>
-    <td>🛠 kub_dashboard.sh </td>
+    <td>🛠 kube_dashboard.sh </td>
     <td>Install the Kubernetes Dashboard</td>
 </tr>
 <tr>
