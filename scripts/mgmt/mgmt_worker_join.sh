@@ -1,21 +1,5 @@
 #!/usr/bin/env bash
 
-# icons
-#
-# 😄 Generic Info
-# ✨ Perform Magic
-# ⚙️  Setting something
-# 🔍 Get Info or Data or Config
-# ✅ Good Result
-# ❌ Bad Result
-# 🚜 Image pull
-# 🤷 Something missing
-# 🔥 Creating something
-# 👍 Startup
-# ⏳ Waiting
-# 🔄 Restarting
-#
-
 cplane_join_cmd=""
 cplane_kube_cfg=kube_cfg.txt
 

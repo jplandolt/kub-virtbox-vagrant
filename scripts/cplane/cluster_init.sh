@@ -13,7 +13,8 @@
 #
 # 😄 Generic Info
 # ✨ Perform Magic
-# ⚙️  Setting something
+# ⚙️ Setting something
+# 🛠 Tools / Install
 # 🔍 Get Info or Data or Config
 # ✅ Good Result
 # ❌ Bad Result
