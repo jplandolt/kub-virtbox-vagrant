@@ -13,7 +13,7 @@
 #
 # 😄 Generic Info
 # ✨ Perform Magic
-# ⚙️ Setting something
+# ⚙️  Setting something
 # 🔍 Get Info or Data or Config
 # ✅ Good Result
 # ❌ Bad Result
@@ -76,11 +76,11 @@ function verify_controlplane_state {
     # Option to allow for delayed retries
     # to allow for services to start up
     if [ "${2,,}" == "retry" ]; then
-        retries=2
+        retries=5
     else
         retries=0
     fi
-    interval=5
+    interval=10
     kube_services="kube-proxy kube-scheduler kube-apiserver kube-controller-manager etcd"
 
     # Loop to handle retries (from 0 to 2)
@@ -116,6 +116,7 @@ function verify_controlplane_state {
             exit_state=1
         else
             echo "✅ Kubernetes Services in expected state: '${state_check}'"
+            retries=0
         fi
 
         # If there is a retry to be had, notify, delay, and repeat
