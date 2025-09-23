@@ -47,7 +47,7 @@ function kube_sanity_check {
     kube_tools="kubelet kubeadm kubectl"
     for ktool in $(echo ${kube_tools}); do
         if ! command -v ${ktool} >/dev/null 2>&1; then
-        echo "🤷 utility '${ktool}' not found"
+            echo "🤷 utility '${ktool}' not found"
             ktoolmissing=y
         fi
     done
@@ -89,6 +89,10 @@ function verify_controlplane_state {
     while [ ${retries} -ge 0 ]; do
         echo "🔍 Verify Kubernetes Services run state is '${state_check}'"
 
+        # Clear up/down State Markers
+        ksvcup=""
+        ksvcdown=""
+
         # Check state of each service
         for kubsvc in $(echo ${kube_services}); do
             SVC_STATE=$(sudo crictl --runtime-endpoint ${D_SOC} ps -o json --name "${kubsvc}" 2>/dev/null | jq -r ".containers[] | select(.metadata.name == \"${kubsvc}\") | .state")
@@ -117,16 +121,17 @@ function verify_controlplane_state {
             exit_state=1
         else
             echo "✅ Kubernetes Services in expected state: '${state_check}'"
+            exit_state=0
             retries=0
         fi
 
         # If there is a retry to be had, notify, delay, and repeat
         retries=$((retries - 1))
         if [ ${retries} -ge 0 ]; then
-        echo "⏳ Retry requested after ${interval} second delay"
-            sleep ${interval}
-        echo ""
-    fi
+            echo "⏳ Retry requested after ${interval} second delay"
+                sleep ${interval}
+            echo ""
+        fi
     done
 
     # didn't work; exit out
@@ -150,10 +155,10 @@ function controlplane_init {
 # Copy the k8s admin.conf into the user directory for subsequent use
 function kubeconf_copy {
     if [ -f /etc/kubernetes/admin.conf ] ; then
-    echo "⚙️  Create local '.kube/config'"
-    mkdir -p ${HOME}/.kube
-    sudo cp -f /etc/kubernetes/admin.conf ${HOME}/.kube/config
-    sudo chown $(id -u):$(id -g) ${HOME}/.kube/config
+        echo "⚙️  Create local '.kube/config'"
+        mkdir -p ${HOME}/.kube
+        sudo cp -f /etc/kubernetes/admin.conf ${HOME}/.kube/config
+        sudo chown $(id -u):$(id -g) ${HOME}/.kube/config
     fi
 }
 
@@ -174,17 +179,18 @@ function weave_install {
         else
             echo ""
         fi
-        weave_count=$(kubectl get pods -n kube-system -o json 2>/dev/null | jq -r '.items[] | select(.metadata.name | startswith("weave-net-")) | .metadata.name' | wc -l)
 
+        # If Weave is running correctly then it will report back the pods list
+        weave_count=$(kubectl get pods -n kube-system -o json 2>/dev/null | jq -r '.items[] | select(.metadata.name | startswith("weave-net-")) | .metadata.name' | wc -l)
         if [ ${weave_count} -gt 0 ]; then
             break
+        else
+            sleep ${interval}
+            elapsed=$((elapsed + interval))
         fi
-
-    sleep ${interval}
-    elapsed=$((elapsed + interval))
     done
 
-    if   [ ${weave_count} -gt 0 ]; then
+    if [ ${weave_count} -gt 0 ]; then
         echo "✅ Weave CNI Service is running"
     else
         echo "❌ Timed out during check - Weave CNI service is NOT running"
