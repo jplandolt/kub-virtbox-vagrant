@@ -31,10 +31,10 @@ function helm_sanity_check {
 function dashboard_sanity_check {
     echo "🔍 Checking if Service '${SERVICE}' exists in namespace '${NAMESPACE}'..."
     if ! kubectl get svc -n "${NAMESPACE}" "${SERVICE}" >/dev/null 2>&1; then
-      echo "❌ Service ${SERVICE} NOT found in namespace ${NAMESPACE}"
-      exit 1
+        echo "❌ Service ${SERVICE} NOT found in namespace ${NAMESPACE}"
+        exit 1
     else
-      echo "✅ Service ${SERVICE} found in namespace ${NAMESPACE}"
+        echo "✅ Service ${SERVICE} found in namespace ${NAMESPACE}"
     fi
 }
 
@@ -44,8 +44,8 @@ function dashboard_sanity_check {
 # HA configuration should be used for a larger cluster
 function dashboard_on_control_plane {
     echo "⚙️  Configuring Control Plane to host the dashboard (as opposed to a worker)"
-
     echo "🔍 Current Control Plane restrictions (Taints) - likely only 'NoSchedule'"
+
     # should see "Taints: node-role.kubernetes.io/control-plane:NoSchedule"
     kubectl describe node cplane | grep Taints
 
@@ -58,7 +58,6 @@ function dashboard_on_control_plane {
     echo "🔍 Updated Control Plane restrictions (Taints)"
     # should see "Taints: node-role.kubernetes.io/control-plane:NoSchedule"
     kubectl describe node cplane | grep Taints
-
     echo ""
 }
 
