@@ -11,18 +11,31 @@
 #
 # icons
 #
-# 😄 info
-# ✨ Using the docker driver based on existing profile
-# 👍 startup
-# 🚜 image pull
-# 🤷 missing
-# 🔥 creating
-# 🔄  Restarting
+# 😄 Generic Info
+# ✨ Perform Magic
+# ⚙️ Setting something
+# 🔍 Get Info or Data or Config
+# ✅ Good Result
+# ❌ Bad Result
+# 🚜 Image pull
+# 🤷 Something missing
+# 🔥 Creating something
+# 👍 Startup
+# 🔄 Restarting
+#
 
 WEAVE_PKG=https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s.yaml
 API_SERVER_IP=$(ip a l eth1 | awk '/inet\s/ {print $2}' | cut -d/ -f1)
 POD_BASE_CIDR=10.201.0.0 # Base address for pods
 
+
+function welcome_msg {
+    echo "Kubernetes Control Plane / Cluster Init"
+    echo ""
+    echo "POD_BASE_CIDR: '${POD_BASE_CIDR}'"
+    echo "API_SERVER_IP: '${API_SERVER_IP}'"
+    echo ""
+}
 
 # Quick check to see if Kubernetes utilities are install
 function kube_sanity_check {
@@ -91,12 +104,6 @@ function verify_controlplane_state {
 
 
 function controlplane_init {
-    echo "Kubernetes Control Plane / Cluster Init"
-    echo ""
-    echo "POD_BASE_CIDR: '${POD_BASE_CIDR}'"
-    echo "API_SERVER_IP: '${API_SERVER_IP}'"
-    echo ""
-
     # Pull down the Kubernetes images for Control Plane Initialization
     echo "🚜  Pulling Kubernetes execution Images"
     sudo kubeadm config images pull
@@ -155,6 +162,7 @@ function weave_install {
 #
 # Main Execution Loop
 #
+welcome_msg
 kube_sanity_check
 verify_controlplane_state down
 controlplane_init
