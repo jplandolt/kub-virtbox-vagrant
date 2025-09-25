@@ -88,7 +88,7 @@ function verify_controlplane_state {
     # Find max svc name length (purely aesthetic)
     maxlen=0
     for kubsvc in $(echo ${kube_services}); do
-	[ ${#kubsvc} -gt ${maxlen} ] && maxlen=${#kubsvc}
+        [ ${#kubsvc} -gt ${maxlen} ] && maxlen=${#kubsvc}
     done
     maxlen=$((maxlen + 2))
 
