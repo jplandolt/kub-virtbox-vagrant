@@ -27,7 +27,7 @@
 #
 
 WEAVE_PKG=https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s.yaml
-API_SERVER_IP=$(ip a l eth1 | awk '/inet\s/ {print $2}' | cut -d/ -f1)
+API_SERVER_IP=$(echo $(hostname -i | sed -E 's/127\.0\.[0-9]+\.[0-9]+//g'))
 POD_BASE_CIDR=10.201.0.0 # Base address for pods
 
 
@@ -101,10 +101,10 @@ function verify_controlplane_state {
                 echo "  🔍 Service '${kubsvc}' is up and running"
                 ksvcup=y
             elif [ "${SVC_STATE}" == "" ]; then
-                echo "  🔍 Service '${kubsvc}' is not running"
+                echo "  🔍 Service '${kubsvc}' is down"
                 ksvcdown=y
             else
-                echo "  🔍 Service '${kubsvc}' is not running. State: '${SVC_STATE}'"
+                echo "  🔍 Service '${kubsvc}' is uncertain - state: '${SVC_STATE}'"
                 ksvcdown=y
             fi
         done
