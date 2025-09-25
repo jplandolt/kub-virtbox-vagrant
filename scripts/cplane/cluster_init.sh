@@ -9,9 +9,10 @@
 #
 # The IP Address for the API_SERVER is the host ip address for the machine
 #
-# icons
+# Unicode Character icons (https://www.compart.com/en/unicode)
 #
 # 😄 Generic Info
+# ☸️ Kubernetes
 # ✨ Perform Magic
 # ⚙️ Setting something
 # 🛠 Tools / Install
