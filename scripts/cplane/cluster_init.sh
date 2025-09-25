@@ -26,10 +26,9 @@
 # 🔄 Restarting
 #
 
-WEAVE_PKG=https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s.yaml
+# Strip off errant 'localhost-y' reference that get created via vagrant
 API_SERVER_IP=$(echo $(hostname -i | sed -E 's/127\.0\.[0-9]+\.[0-9]+//g'))
 POD_BASE_CIDR=10.201.0.0 # Base address for pods
-
 
 function welcome_msg {
     echo "Kubernetes Control Plane / Cluster Init"

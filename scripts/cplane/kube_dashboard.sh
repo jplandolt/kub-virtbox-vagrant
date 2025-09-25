@@ -1,8 +1,11 @@
 #!/bin/bash
 
+# Strip off errant 'localhost-y' reference that get created via vagrant
+CPLANE_IP=$(echo $(hostname -i | sed -E 's/127\.0\.[0-9]+\.[0-9]+//g'))
+
+# Kubernetes Dashboard Parameters
 NAMESPACE="kubernetes-dashboard"
 SERVICE="kubernetes-dashboard"
-CPLANE_IP=$(ip a l eth1 | awk '/inet\s/ {print $2}' | cut -d/ -f1)
 DASHBOARD_PORT=32443
 
 function help_msg {
