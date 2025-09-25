@@ -84,6 +84,14 @@ function verify_controlplane_state {
     interval=10
     kube_services="kube-apiserver kube-controller-manager kube-scheduler kube-proxy etcd"
 
+
+    # Find max svc name length (purely aesthetic)
+    maxlen=0
+    for kubsvc in $(echo ${kube_services}); do
+	[ ${#kubsvc} -gt ${maxlen} ] && maxlen=${#kubsvc}
+    done
+    maxlen=$((maxlen + 2))
+
     # Loop to handle retries (from 0 to 2)
     # 0 retries means that this check happens once with no delay
     while [ ${retries} -ge 0 ]; do
@@ -97,14 +105,15 @@ function verify_controlplane_state {
         for kubsvc in $(echo ${kube_services}); do
             SVC_STATE=$(sudo crictl --runtime-endpoint ${D_SOC} ps -o json --name "${kubsvc}" 2>/dev/null | jq -r ".containers[] | select(.metadata.name == \"${kubsvc}\") | .state")
 
+            printf "  🔍 Service %-*s: " "${maxlen}" "'${kubsvc}'"
             if   [ "${SVC_STATE}" == "CONTAINER_RUNNING" ]; then
-                echo "  🔍 Service '${kubsvc}' is up and running"
+                echo "up"
                 ksvcup=y
             elif [ "${SVC_STATE}" == "" ]; then
-                echo "  🔍 Service '${kubsvc}' is down"
+                echo "down"
                 ksvcdown=y
             else
-                echo "  🔍 Service '${kubsvc}' is uncertain - state: '${SVC_STATE}'"
+                echo "down / uncertain (state: '${SVC_STATE}')"
                 ksvcdown=y
             fi
         done
@@ -208,3 +217,4 @@ controlplane_init
 kubeconf_copy
 verify_controlplane_state up retry
 weave_install
+
