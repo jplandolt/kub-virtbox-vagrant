@@ -13,19 +13,19 @@ This project sets up a local Kubernetes cluster using Vagrant and VirtualBox. It
 
 <table>
 <tr>
-    <td>🚀 cluster_init.sh</td>
+    <td>🚀&nbsp;cluster_init.sh</td>
     <td>Initialize the Kubernetes Cluster and install the Weave CNI</td>
 </tr>
 <tr>
-    <td>🛠 kube_dashboard.sh </td>
+    <td>🛠&nbsp;kube_dashboard.sh </td>
     <td>Install the Kubernetes Dashboard</td>
 </tr>
 <tr>
-    <td>⚙️ set_worker_role.sh</td>
+    <td>⚙️&nbsp;set_worker_role.sh</td>
     <td>Define "worker" labels for each of the worker nodes in the Cluster</td>
 </tr>
 <tr>
-    <td>📜 join_cmd.sh</td>
+    <td>📜&nbsp;join_cmd.sh</td>
     <td>Show the "join' information to be used on any worker nodes in the Cluster</td>
 </tr>
 </table>
