@@ -231,18 +231,6 @@ function install_flannel_cni {
         exit 1
     fi
 
-    # Check for Kernel module 'br_netfilter' - Bridge Network Filter
-    if [ "$(lsmod | grep br_netfilter)" == "" ]; then
-        echo "⚙️  Enable Kernel module 'br_netfilter' - Bridge Network Filter"
-        sudo modprobe br_netfilter
-
-        # Persist the module load for reboot
-        sudo touch /etc/modules-load.d/br_netfilter.conf
-        sudo chmod 666 /etc/modules-load.d/br_netfilter.conf
-        sudo echo "br_netfilter" > /etc/modules-load.d/br_netfilter.conf
-        sudo chmod 644 /etc/modules-load.d/br_netfilter.conf
-    fi
-
     # Install Flannel Service
     echo "--------------------------------------"
     kubectl apply -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml --validate=false

@@ -18,6 +18,16 @@ if [[ -n "${ETC_HOSTS}" ]]; then
   done
 fi
 
+# Check for Kernel module 'br_netfilter' - Bridge Network Filter
+# IF needed, Enable (and persist) Kernel Module br_netfilter
+if [ "$(lsmod | grep br_netfilter)" == "" ]; then
+    sudo modprobe br_netfilter
+    sudo touch /etc/modules-load.d/br_netfilter.conf
+    sudo chmod 666 /etc/modules-load.d/br_netfilter.conf
+    sudo echo "br_netfilter" > /etc/modules-load.d/br_netfilter.conf
+    sudo chmod 644 /etc/modules-load.d/br_netfilter.conf
+fi
+
 # Apt Stuff for Docker Install
 sudo apt update
 sudo apt install ca-certificates curl

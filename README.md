@@ -198,17 +198,12 @@ With the shutdown of Weaveworks, Weave CNI has been effectively discontinued, th
 
 ### 2b. Install Flannel CNI (Container Network Interface)
 
-After the cluster initialization, enable the `br_netfilter` kernel module:
-```bash
-sudo modprobe br_netfilter
-```
-
-Then, install Flannel CNI:
+First, install Flannel CNI:
 ```bash
 kubectl apply -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml 
 ```
 
-Finally restart the Kublet service:
+Then, restart the Kublet service:
 ```bash
 sudo service kubelet restart
 ```
