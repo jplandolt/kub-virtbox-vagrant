@@ -32,6 +32,6 @@ function cluster_state {
 if [ "${1}" == "watch" ] ; then
 	watch -n 5 ${0}
 else
+    # This script calls itself again, in "single use" mode
 	cluster_state
 fi
-
