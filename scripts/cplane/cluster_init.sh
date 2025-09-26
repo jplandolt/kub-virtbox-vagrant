@@ -1,15 +1,18 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
 #
 # Script to Initialize the Control Plane
 #
-# Grab the kubernetes service images
-# init the service, specifing the base CIDR
-# copy the kube config to the user directory
-# install the WEAVE CNI service
+# There is a lot in this script. If you're learning, don't be put off
+# look below for "SCRIPT ESSENTIALS" and it shows the small set of
+# important functions, which are:
 #
-# The IP Address for the API_SERVER is the host ip address for the machine
+# 1. Grab the kubernetes service images
+# 2. Init the service, specifing the base CIDR
+# 3. Copy the kube config to the user directory
+# 4. Install the CNI service
 #
-# Unicode Character icons (https://www.compart.com/en/unicode)
+# Unicode Character icons (https://www.compart.com/en/unicode) for pretty scripts
 #
 # 😄 Generic Info
 # ☸️ Kubernetes
@@ -142,10 +145,10 @@ function verify_controlplane_state {
         # - All good - All own or all up, as expected?
         state_check="${1,,}"
         if [ "${state_check}" == "up" ] && [ "${ksvcdown}" == "y" ] ; then
-            echo "❌ Expected state is UP but one or more kubernetes services are not running"
+            echo "❌ Expected state is UP but one or more services are not running"
             exit_state=1
         elif [ "${state_check}" == "down" ] && [ "${ksvcup}" == "y" ] ; then
-            echo "❌ Expected state is DOWN but one or more kubernetes services are still running"
+            echo "❌ Expected state is DOWN but one or more services are still running"
             exit_state=1
         else
             echo "✅ Kubernetes Services in expected state: '${state_check}'"
@@ -170,10 +173,12 @@ function verify_controlplane_state {
     fi
 }
 
+#
 # SCRIPT ESSENTIALS ARE HERE
 #
 # There are many functions in this script that perform
 # a series of sanity checks and "extra" work, which is helpful
+# but not strictly necessary
 #
 # The ESSENTIAL work is right here:
 #   controlplane_init  - to start up the Control Plane
@@ -183,17 +188,23 @@ function verify_controlplane_state {
 # If you are tring to learn about Starting up a Kubernetes
 # Cluster, these are the essential functions
 #
-
+# If you are interested in creating solid service automation
+# the rest of the informative or sanity checking is very handy
+#
 
 # Initialize the Control Plane Cluster
 function controlplane_init {
     # Pull down the Kubernetes images for Control Plane Initialization
     echo "🚜  Pulling Kubernetes execution Images"
+    echo "--------------------------------------"
     sudo kubeadm config images pull
+    echo "--------------------------------------"
 
     # Spin up the Control Plane Node (the 'heart' of the Cluster)
     echo "🔄  Initializing Cluster"
+    echo "--------------------------------------"
     sudo kubeadm init --pod-network-cidr=${POD_BASE_CIDR}/16 --apiserver-advertise-address=${API_SERVER_IP}
+    echo "--------------------------------------"
 }
 
 
@@ -204,51 +215,6 @@ function kubeconf_copy {
         mkdir -p ${HOME}/.kube
         sudo cp -f /etc/kubernetes/admin.conf ${HOME}/.kube/config
         sudo chown $(id -u):$(id -g) ${HOME}/.kube/config
-    fi
-}
-
-
-# Install the Weave CNI (Container Network Interface)
-# NOTE: Weave Project was Shuttered in June 2024 and no longer supported
-function install_weave_cni {
-    echo "🚜  Install Weave CNI Service"
-    kubectl apply -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s.yaml --validate=false
-}
-
-
-# Verify the Weave CNI Installation
-function verify_weave_cni {
-    echo "🔍 Verify Weave CNI Service Install"
-
-    # Verify that CNI service is running
-    timeout=60 # 2 minutes = 120 seconds
-    interval=10 # check every 10 seconds
-    elapsed=0
-
-    # Repeat loop until time runs out
-    while [ ${elapsed} -lt ${timeout} ]; do
-        echo -n "🔍 Verify Weave Service running"
-        if [ ${elapsed} -gt 0 ]; then
-            echo " (trying for $((timeout - elapsed)) more seconds)"
-        else
-            echo ""
-        fi
-
-        # If Weave is running correctly then it will report back the pods list
-        weave_count=$(kubectl get pods -n kube-system -o json 2>/dev/null | jq -r '.items[] | select(.metadata.name | startswith("weave-net-")) | .metadata.name' | wc -l)
-        elapsed=$((elapsed + interval))
-        if [ ${weave_count} -gt 0 ]; then
-            break
-        elif [ ${elapsed} -lt ${timeout} ]; then
-            sleep ${interval}
-        fi
-    done
-
-    if [ ${weave_count} -gt 0 ]; then
-        echo "✅ Weave CNI Service is running"
-    else
-        echo "❌ Timed out during check - Weave CNI service is NOT running"
-        exit 1
     fi
 }
 
@@ -269,11 +235,18 @@ function install_flannel_cni {
     if [ "$(lsmod | grep br_netfilter)" == "" ]; then
         echo "⚙️  Enable Kernel module 'br_netfilter' - Bridge Network Filter"
         sudo modprobe br_netfilter
-        echo "br_netfilter" | sudo tee -a /etc/modules-load.d/br_netfilter.conf
+
+        # Persist the module load for reboot
+        sudo touch /etc/modules-load.d/br_netfilter.conf
+        sudo chmod 666 /etc/modules-load.d/br_netfilter.conf
+        sudo echo "br_netfilter" > /etc/modules-load.d/br_netfilter.conf
+        sudo chmod 644 /etc/modules-load.d/br_netfilter.conf
     fi
 
     # Install Flannel Service
+    echo "--------------------------------------"
     kubectl apply -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml --validate=false
+    echo "--------------------------------------"
 
     # Restart the kubelet
     sudo service kubelet restart
@@ -318,10 +291,59 @@ function verify_flannel_cni {
 }
 
 
+# Install the Weave CNI (Container Network Interface)
+# NOTE: Weave Project was Shuttered in June 2024 and no longer supported
+function install_weave_cni {
+    echo "🚜  Install Weave CNI Service"
+    echo "--------------------------------------"
+    kubectl apply -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s.yaml --validate=false
+    echo "--------------------------------------"
+}
+
+
+# Verify the Weave CNI Installation
+function verify_weave_cni {
+    echo "🔍 Verify Weave CNI Service Install"
+
+    # Verify that CNI service is running
+    timeout=60 # 2 minutes = 120 seconds
+    interval=10 # check every 10 seconds
+    elapsed=0
+
+    # Repeat loop until time runs out
+    while [ ${elapsed} -lt ${timeout} ]; do
+        echo -n "🔍 Verify Weave Service running"
+        if [ ${elapsed} -gt 0 ]; then
+            echo " (trying for $((timeout - elapsed)) more seconds)"
+        else
+            echo ""
+        fi
+
+        # If Weave is running correctly then it will report back the pods list
+        weave_count=$(kubectl get pods -n kube-system -o json 2>/dev/null | jq -r '.items[] | select(.metadata.name | startswith("weave-net-")) | .metadata.name' | wc -l)
+        elapsed=$((elapsed + interval))
+        if [ ${weave_count} -gt 0 ]; then
+            break
+        elif [ ${elapsed} -lt ${timeout} ]; then
+            sleep ${interval}
+        fi
+    done
+
+    if [ ${weave_count} -gt 0 ]; then
+        echo "✅ Weave CNI Service is running"
+    else
+        echo "❌ Timed out during check - Weave CNI service is NOT running"
+        exit 1
+    fi
+}
+
+
 # Install the Rancher LocalPath StorageClass implementation
 function install_localpath_storageclass {
     echo "🚜  Install Rancher 'local-path' StorageClass"
+    echo "--------------------------------------"
     kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/v0.0.32/deploy/local-path-storage.yaml --validate=false
+    echo "--------------------------------------"
 }
 
 
@@ -334,8 +356,8 @@ verify_controlplane_state down
 controlplane_init
 kubeconf_copy
 verify_controlplane_state up retry
-#install_weave_cni
-#verify_weave_cni
 install_flannel_cni
 verify_flannel_cni
+#install_weave_cni
+#verify_weave_cni
 install_localpath_storageclass
