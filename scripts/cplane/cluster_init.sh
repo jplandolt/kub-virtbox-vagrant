@@ -15,11 +15,14 @@
 # ☸️ Kubernetes
 # ✨ Perform Magic
 # ⚙️ Setting something
+# 🚜 Image pull
 # 🛠 Tools / Install
 # 🔍 Get Info or Data or Config
 # ✅ Good Result
 # ❌ Bad Result
-# 🚜 Image pull
+# ⬆ Up Arrow
+# ⬇ Down Arrow
+# ❓ Question / Unknown
 # 🤷 Something missing
 # 🔥 Creating something
 # 👍 Startup
@@ -29,7 +32,7 @@
 
 # Strip off errant 'localhost-y' reference that get created via vagrant
 API_SERVER_IP=$(echo $(hostname -i | sed -E 's/127\.0\.[0-9]+\.[0-9]+//g'))
-POD_BASE_CIDR=10.201.0.0 # Base address for pods
+POD_BASE_CIDR=10.244.0.0 # Base address for pods
 
 function welcome_msg {
     echo "Kubernetes Control Plane / Cluster Init"
@@ -77,13 +80,14 @@ function verify_controlplane_state {
     # Option to allow for delayed retries
     # to allow for services to start up
     if [ "${2,,}" == "retry" ]; then
-        retries=5
+        timeout=60 # 1 minute = 60 seconds
     else
-        retries=0
+        timeout=1
     fi
     interval=10
-    kube_services="kube-apiserver kube-controller-manager kube-scheduler kube-proxy etcd"
+    elapsed=0
 
+    kube_services="kube-apiserver kube-controller-manager kube-scheduler kube-proxy etcd"
 
     # Find max svc name length (purely aesthetic)
     maxlen=0
@@ -92,10 +96,13 @@ function verify_controlplane_state {
     done
     maxlen=$((maxlen + 2))
 
-    # Loop to handle retries (from 0 to 2)
-    # 0 retries means that this check happens once with no delay
-    while [ ${retries} -ge 0 ]; do
-        echo "🔍 Verify Kubernetes Services run state is '${state_check}'"
+    while [ ${elapsed} -lt ${timeout} ]; do
+        echo -n "🔍 Verify Kubernetes Services run state is '${state_check}'"
+        if [ ${elapsed} -gt 0 ]; then
+            echo " (trying for $((timeout - elapsed)) more seconds)"
+        else
+            echo ""
+        fi
 
         # Clear up/down State Markers
         ksvcup=""
@@ -105,17 +112,21 @@ function verify_controlplane_state {
         for kubsvc in $(echo ${kube_services}); do
             SVC_STATE=$(sudo crictl --runtime-endpoint ${D_SOC} ps -o json --name "${kubsvc}" 2>/dev/null | jq -r ".containers[] | select(.metadata.name == \"${kubsvc}\") | .state")
 
-            printf "  🔍 Service %-*s: " "${maxlen}" "'${kubsvc}'"
-            if   [ "${SVC_STATE}" == "CONTAINER_RUNNING" ]; then
-                echo "up"
+            # State Icons (actual vs compare)
+            if [ "${SVC_STATE}" == "CONTAINER_RUNNING" ]; then
                 ksvcup=y
+                state_str="up"
+                state_icon=$([ "${state_check}" == "up" ] && echo "⬆ ✅" || echo "⬆ ❌" )
             elif [ "${SVC_STATE}" == "" ]; then
-                echo "down"
                 ksvcdown=y
+                state_str="down"
+                state_icon=$([ "${state_check}" == "down" ] && echo "⬇ ✅" || echo "⬇ ❌")
             else
-                echo "down / uncertain (state: '${SVC_STATE}')"
                 ksvcdown=y
+                state_str="down / uncertain (state: '${SVC_STATE}')"
+                state_icon="❓ ❌"
             fi
+        printf "  %s Service %-*s: %s\n" "${state_icon}" "${maxlen}" "'${kubsvc}'" "${state_str}"
         done
 
         state_check="${1,,}"
@@ -135,11 +146,12 @@ function verify_controlplane_state {
         fi
 
         # If there is a retry to be had, notify, delay, and repeat
-        retries=$((retries - 1))
-        if [ ${retries} -ge 0 ]; then
-            echo "⏳ Retry requested after ${interval} second delay"
-                sleep ${interval}
-            echo ""
+        elapsed=$((elapsed + interval))
+        if [ "${exit_state}" == "0" ] ; then
+            break
+        elif [ ${elapsed} -lt ${timeout} ]; then
+            echo "⏳ Retry - ${interval} second delay"
+            sleep ${interval}
         fi
     done
 
@@ -157,7 +169,7 @@ function controlplane_init {
 
     # Spin up the Control Plane Node (and cluster)
     echo "🔄  Initializing Cluster"
-    sudo kubeadm init --pod-network-cidr=10.201.0.0/16 --apiserver-advertise-address=192.168.63.11
+    sudo kubeadm init --pod-network-cidr=${POD_BASE_CIDR}/16 --apiserver-advertise-address=${API_SERVER_IP}
 }
 
 
@@ -173,11 +185,12 @@ function kubeconf_copy {
 
 
 # Install the Weave CNI (Container Network Interface)
-function weave_install {
+# NOTE: Weave Project was Shuttered in June 2024 and no longer supported
+function install_weave_cni {
     echo "🚜  Install Weave CNI Service"
     kubectl apply -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s.yaml --validate=false
 
-    # Verify that weave is running
+    # Verify that CNI service is running
     timeout=60 # 2 minutes = 120 seconds
     interval=10 # check every 10 seconds
     elapsed=0
@@ -191,11 +204,11 @@ function weave_install {
 
         # If Weave is running correctly then it will report back the pods list
         weave_count=$(kubectl get pods -n kube-system -o json 2>/dev/null | jq -r '.items[] | select(.metadata.name | startswith("weave-net-")) | .metadata.name' | wc -l)
+        elapsed=$((elapsed + interval))
         if [ ${weave_count} -gt 0 ]; then
             break
-        else
+        elif [ ${elapsed} -lt ${timeout} ]; then
             sleep ${interval}
-            elapsed=$((elapsed + interval))
         fi
     done
 
@@ -207,6 +220,69 @@ function weave_install {
     fi
 }
 
+
+function install_flannel_cni {
+    echo "🚜  Install Flannel CNI Service"
+
+    # The Prepackaged Flannel CNI is hard coded to use CIDR of 10.244.0.0/16
+    if ! [ "${POD_BASE_CIDR}" == "10.244.0.0" ]; then
+        echo "❌ For Flannel CNI via 'kubectl apply', var 'POD_BASE_CIDR' must be '10.244.0.0'"
+        echo "   (POD_BASE_CIDR is currently defined as '${POD_BASE_CIDR}')"
+        echo ""
+        exit 1
+    fi
+
+    # Check for Kernel module 'br_netfilter' - Bridge Network Filter
+    if [ "$(lsmod | grep br_netfilter)" == "" ]; then
+        echo "⚙️  Enable Kernel module 'br_netfilter' - Bridge Network Filter"
+        sudo modprobe br_netfilter
+    fi
+
+    # Install Flannel Service
+    kubectl apply -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml --validate=false
+
+    # Restart the kubelet
+    sudo service kubelet restart
+
+    # Verify that CNI service is running
+    timeout=60 # 1 minute = 60 seconds
+    interval=10 # check every 10 seconds
+    elapsed=0
+    while [ ${elapsed} -lt ${timeout} ]; do
+        echo -n "🔍 Verify Flannel Service running"
+        if [ ${elapsed} -gt 0 ]; then
+            echo " (trying for $((timeout - elapsed)) more seconds)"
+        else
+            echo ""
+        fi
+
+        # If Flannel is running correctly then it will report back the pods list
+        flannel_state=$(kubectl get pods -n kube-flannel -o json 2>/dev/null | jq -r '.items[] | select(.metadata.name | startswith("kube-flannel-")) | .status.phase')
+
+        elapsed=$((elapsed + interval))
+        if [ ${flannel_state} == "Running" ]; then
+            break
+        elif [ ${elapsed} -lt ${timeout} ]; then
+            sleep ${interval}
+        fi
+    done
+
+    if [ ${flannel_state} == "Running" ]; then
+        echo "✅ Flannel CNI Service is running"
+    else
+        echo "❌ Timed out during check - Flannel CNI service is NOT running"
+        exit 1
+    fi
+}
+
+
+# Install the Rancher LocalPath StorageClass implementation
+function install_localpath_storageclass {
+    echo "🚜  Install Rancher 'local-path' StorageClass"
+    kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/v0.0.32/deploy/local-path-storage.yaml --validate=false
+}
+
+
 #
 # Main Execution Loop
 #
@@ -216,5 +292,6 @@ verify_controlplane_state down
 controlplane_init
 kubeconf_copy
 verify_controlplane_state up retry
-weave_install
-
+#install_weave_cni
+install_flannel_cni
+install_localpath_storageclass
