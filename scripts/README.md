@@ -9,7 +9,7 @@ This project sets up a local Kubernetes cluster using Vagrant and VirtualBox. It
 
 ## Bash Scripts
 
-🛠 These scripts are to make it easy to bring up and maintain the Kubernetes Cluster.  Some are collections of manual provisioning commands from the original project (which reduces manual typing errors). Others are facilitators, to manage the Control Plane and Worker nodes in an easy and repeatable fashion.
+These scripts are to make it easy to bring up and maintain the Kubernetes Cluster.  Some are collections of manual provisioning commands from the original project (which reduces manual typing errors). Others are facilitators, to manage the Control Plane and Worker nodes in an easy and repeatable fashion.
 
 <table>
 <tr>
