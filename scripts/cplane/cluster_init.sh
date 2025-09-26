@@ -145,10 +145,10 @@ function verify_controlplane_state {
         # - All good - All own or all up, as expected?
         state_check="${1,,}"
         if [ "${state_check}" == "up" ] && [ "${ksvcdown}" == "y" ] ; then
-            echo "❌ Expected state is UP but one or more services are not running"
+            echo "❌ Expected state is UP but some services are not running"
             exit_state=1
         elif [ "${state_check}" == "down" ] && [ "${ksvcup}" == "y" ] ; then
-            echo "❌ Expected state is DOWN but one or more services are still running"
+            echo "❌ Expected state is DOWN but some services are still running"
             exit_state=1
         else
             echo "✅ Kubernetes Services in expected state: '${state_check}'"
