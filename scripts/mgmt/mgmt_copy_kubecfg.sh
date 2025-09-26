@@ -1,21 +1,5 @@
 #!/usr/bin/env bash
 
-# icons
-#
-# 😄 Generic Info
-# ✨ Perform Magic
-# ⚙️  Setting something
-# 🔍 Get Info or Data or Config
-# ✅ Good Result
-# ❌ Bad Result
-# 🚜 Image pull
-# 🤷 Something missing
-# 🔥 Creating something
-# 👍 Startup
-# ⏳ Waiting
-# 🔄 Restarting
-#
-
 cplane_join_cmd=""
 cplane_kube_cfg=kube_cfg.txt
 
@@ -39,7 +23,7 @@ function controlplane_sanity {
 function copy_kubcfg {
     echo "⚙️  Getting kube config file from the Control Plane"
     rm -f ${cplane_kube_cfg}
-    vagrant ssh cplane -c "cat .kube/config" | sed $'s/\r$//' > ${cplane_kube_cfg}
+    vagrant ssh cplane -c "sudo cat /etc/kubernetes/admin.conf" | sed $'s/\r$//' > ${cplane_kube_cfg}
 
     echo "⚙️  Move kube config file to \${HOME}/.kube/config"
     mkdir -p ${HOME}/.kube

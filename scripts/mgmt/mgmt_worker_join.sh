@@ -29,7 +29,7 @@ function controlplane_sanity {
 
         echo "⚙️  Getting kube config file from the Control Plane"
         rm -f ${cplane_kube_cfg}
-        vagrant ssh cplane -c "cat .kube/config" > ${cplane_kube_cfg}
+        vagrant ssh cplane -c "sudo cat /etc/kubernetes/admin.conf" | sed $'s/\r$//' > ${cplane_kube_cfg}
     fi
 }
 
@@ -57,7 +57,7 @@ function worker_join {
         echo "✨ Status of VM '${wnode}' is '${node_status}'"
 
         if ! [ "${node_status,,}" == "running" ] ; then
-            echo "🤷 Worker VM '${wnode}' is not running or able to join cluster"
+            echo "🤷 Worker VM '${wnode}' is not running nor able to join cluster"
         else
             echo "✅ Worker VM '${wnode}' is running"
             echo "🔍 Checking to see if node '${wnode}' is free to join the cluster"
@@ -84,7 +84,6 @@ function worker_join {
                 label_result=$(vagrant ssh ${wnode} -c "kubectl label nodes ${wnode} node-role.kubernetes.io/worker=worker" | tr -d '\r')
             else
                 echo "🤷 Worker VM '${wnode}' is NOT attached to the cluster"
-#                exit 1
             fi
         fi
         echo "-----------------------------------"
