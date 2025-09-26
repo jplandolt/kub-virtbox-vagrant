@@ -182,14 +182,35 @@ sudo kubeadm config images pull
 
 Initialize the cluster:
 ```bash
-sudo kubeadm init --pod-network-cidr=10.201.0.0/16 --apiserver-advertise-address=192.168.63.11
+sudo kubeadm init --pod-network-cidr=10.244.0.0/16 --apiserver-advertise-address=192.168.63.11
 ```
 
-### 2. Install Weave CNI (Container Network Interface)
+### 2a. Install Weave CNI (Container Network Interface)
 
 After the cluster initialization, install Weave CNI:
 ```bash
 kubectl apply -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s.yaml
+```
+
+### NOTE: Weave CNI has been discontinued
+
+With the shutdown of Weaveworks, Weave CNI has been effectively discontinued, the GitHub repo archived in June 2024. So a new CNI should be considered, and the first suggestion is Flannel
+
+### 2b. Install Flannel CNI (Container Network Interface)
+
+After the cluster initialization, enable the `br_netfilter` kernel module:
+```bash
+sudo modprobe br_netfilter
+```
+
+Then, install Flannel CNI:
+```bash
+kubectl apply -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml 
+```
+
+Finally restart the Kublet service:
+```bash
+sudo service kubelet restart
 ```
 
 ### NOTE: Control Plane script 'cluster_init.sh' wraps steps 1. and 2.
