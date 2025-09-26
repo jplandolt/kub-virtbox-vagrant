@@ -30,10 +30,13 @@
 # 🔄 Restarting
 #
 
+# These varaibles define the Heart of the Cluster: CP ID and IP base for Pods
+#
 # Strip off errant 'localhost-y' reference that get created via vagrant
 API_SERVER_IP=$(echo $(hostname -i | sed -E 's/127\.0\.[0-9]+\.[0-9]+//g'))
 POD_BASE_CIDR=10.244.0.0 # Base address for pods
 
+# Hey, howzitgoing
 function welcome_msg {
     echo "Kubernetes Control Plane / Cluster Init"
     echo ""
@@ -41,6 +44,7 @@ function welcome_msg {
     echo "API_SERVER_IP: '${API_SERVER_IP}'"
     echo ""
 }
+
 
 # Quick check to see if Kubernetes utilities are installed
 function kube_sanity_check {
@@ -96,6 +100,7 @@ function verify_controlplane_state {
     done
     maxlen=$((maxlen + 2))
 
+    # Repeat loop until time runs out
     while [ ${elapsed} -lt ${timeout} ]; do
         echo -n "🔍 Verify Kubernetes Services run state is '${state_check}'"
         if [ ${elapsed} -gt 0 ]; then
@@ -165,14 +170,28 @@ function verify_controlplane_state {
     fi
 }
 
-# Grab the Kubernetes Services Images and
+# SCRIPT ESSENTIALS ARE HERE
+#
+# There are many functions in this script that perform
+# a series of sanity checks and "extra" work, which is helpful
+#
+# The ESSENTIAL work is right here:
+#   controlplane_init  - to start up the Control Plane
+#   kubeconf_copy      - to use 'kubectl' properly
+#   verify_flannel_cni - to set up cluster communication
+#
+# If you are tring to learn about Starting up a Kubernetes
+# Cluster, these are the essential functions
+#
+
+
 # Initialize the Control Plane Cluster
 function controlplane_init {
     # Pull down the Kubernetes images for Control Plane Initialization
     echo "🚜  Pulling Kubernetes execution Images"
     sudo kubeadm config images pull
 
-    # Spin up the Control Plane Node (and cluster)
+    # Spin up the Control Plane Node (the 'heart' of the Cluster)
     echo "🔄  Initializing Cluster"
     sudo kubeadm init --pod-network-cidr=${POD_BASE_CIDR}/16 --apiserver-advertise-address=${API_SERVER_IP}
 }
@@ -194,11 +213,19 @@ function kubeconf_copy {
 function install_weave_cni {
     echo "🚜  Install Weave CNI Service"
     kubectl apply -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s.yaml --validate=false
+}
+
+
+# Verify the Weave CNI Installation
+function verify_weave_cni {
+    echo "🔍 Verify Weave CNI Service Install"
 
     # Verify that CNI service is running
     timeout=60 # 2 minutes = 120 seconds
     interval=10 # check every 10 seconds
     elapsed=0
+
+    # Repeat loop until time runs out
     while [ ${elapsed} -lt ${timeout} ]; do
         echo -n "🔍 Verify Weave Service running"
         if [ ${elapsed} -gt 0 ]; then
@@ -242,6 +269,7 @@ function install_flannel_cni {
     if [ "$(lsmod | grep br_netfilter)" == "" ]; then
         echo "⚙️  Enable Kernel module 'br_netfilter' - Bridge Network Filter"
         sudo modprobe br_netfilter
+        echo "br_netfilter" | sudo tee -a /etc/modules-load.d/br_netfilter.conf
     fi
 
     # Install Flannel Service
@@ -249,11 +277,19 @@ function install_flannel_cni {
 
     # Restart the kubelet
     sudo service kubelet restart
+}
+
+
+# Verify the Flannel CNI Installation
+function verify_flannel_cni {
+    echo "🔍 Verify Flannel CNI Service Install"
 
     # Verify that CNI service is running
     timeout=60 # 1 minute = 60 seconds
     interval=10 # check every 10 seconds
     elapsed=0
+
+    # Repeat loop until time runs out
     while [ ${elapsed} -lt ${timeout} ]; do
         echo -n "🔍 Verify Flannel Service running"
         if [ ${elapsed} -gt 0 ]; then
@@ -299,5 +335,7 @@ controlplane_init
 kubeconf_copy
 verify_controlplane_state up retry
 #install_weave_cni
+#verify_weave_cni
 install_flannel_cni
+verify_flannel_cni
 install_localpath_storageclass
