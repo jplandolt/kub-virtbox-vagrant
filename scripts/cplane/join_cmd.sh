@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
 echo "k8s worker join command (requires sudo):"
 echo ""
 echo "--------------------------------------------------"

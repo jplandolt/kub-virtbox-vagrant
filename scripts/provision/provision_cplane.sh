@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 #
-# This is the base machine config for a Kubernetes Control Plane node
+# This is the custom config for a Kubernetes Control Plane node
 # For general node configuration, put that work in 'provision_base.sh'
 #
 

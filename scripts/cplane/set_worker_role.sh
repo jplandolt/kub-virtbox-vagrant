@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 echo "⚙️  Setting worker node(s) role to 'worker'"
 
