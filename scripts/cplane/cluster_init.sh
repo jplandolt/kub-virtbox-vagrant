@@ -42,7 +42,7 @@ function welcome_msg {
     echo ""
 }
 
-# Quick check to see if Kubernetes utilities are install
+# Quick check to see if Kubernetes utilities are installed
 function kube_sanity_check {
     # Are Kubernetes tools installed?
     echo "🔍 Check for kubernetes tools on the machine"
@@ -66,8 +66,8 @@ function kube_sanity_check {
 # or all are down
 #
 # Param 1 - "up" or "down"
-# Param 2 - optional - "retry" for a retry loop
-#
+# Param 2 - optional - "retry" for a retry loop, useful
+#           for when services are taking time to come up/down
 function verify_controlplane_state {
     D_SOC=unix:///var/run/containerd/containerd.sock
 
@@ -77,16 +77,16 @@ function verify_controlplane_state {
        exit 1
     fi
 
-    # Option to allow for delayed retries
-    # to allow for services to start up
+    # Option to allow for delayed retries (allow for services to come up/down)
     if [ "${2,,}" == "retry" ]; then
         timeout=60 # 1 minute = 60 seconds
     else
-        timeout=1
+        timeout=0  # No loop; (or, just one iteration)
     fi
     interval=10
     elapsed=0
 
+    # What services are we checking for?
     kube_services="kube-apiserver kube-controller-manager kube-scheduler kube-proxy etcd"
 
     # Find max svc name length (purely aesthetic)
@@ -112,7 +112,8 @@ function verify_controlplane_state {
         for kubsvc in $(echo ${kube_services}); do
             SVC_STATE=$(sudo crictl --runtime-endpoint ${D_SOC} ps -o json --name "${kubsvc}" 2>/dev/null | jq -r ".containers[] | select(.metadata.name == \"${kubsvc}\") | .state")
 
-            # State Icons (actual vs compare)
+            # State Icons (actual vs compare) - Up, Down, or Unknown
+            # Also to create the "icon state" for each service (up/down and expectation)
             if [ "${SVC_STATE}" == "CONTAINER_RUNNING" ]; then
                 ksvcup=y
                 state_str="up"
@@ -126,18 +127,20 @@ function verify_controlplane_state {
                 state_str="down / uncertain (state: '${SVC_STATE}')"
                 state_icon="❓ ❌"
             fi
-        printf "  %s Service %-*s: %s\n" "${state_icon}" "${maxlen}" "'${kubsvc}'" "${state_str}"
+
+            printf "  %s Service %-*s: %s\n" "${state_icon}" "${maxlen}" "'${kubsvc}'" "${state_str}"
         done
 
+        # Are service states matching expectations?
+        # - Going "up" but some services are still down?
+        # - Going "down" but some services are still up?
+        # - All good - All own or all up, as expected?
         state_check="${1,,}"
-        if [ "${ksvcup}" == "y" ] && [ "${ksvcdown}" == "y" ] ; then
-            echo "❌ Uncertain state - some Kubernetes services are Up while others are Down"
-            exit_state=1
-        elif [ "${state_check}" == "up" ] && [ "${ksvcdown}" == "y" ] ; then
+        if [ "${state_check}" == "up" ] && [ "${ksvcdown}" == "y" ] ; then
             echo "❌ Expected state is UP but one or more kubernetes services are not running"
             exit_state=1
         elif [ "${state_check}" == "down" ] && [ "${ksvcup}" == "y" ] ; then
-            echo "❌ Expected state is DOWN but one or more kubernetes services are running"
+            echo "❌ Expected state is DOWN but one or more kubernetes services are still running"
             exit_state=1
         else
             echo "✅ Kubernetes Services in expected state: '${state_check}'"
@@ -146,8 +149,9 @@ function verify_controlplane_state {
         fi
 
         # If there is a retry to be had, notify, delay, and repeat
+        # a timeout of 0 means no loop, just break out
         elapsed=$((elapsed + interval))
-        if [ "${exit_state}" == "0" ] ; then
+        if [ "${exit_state}" == "0" ] || [ "${timeout}" == "0" ]; then
             break
         elif [ ${elapsed} -lt ${timeout} ]; then
             echo "⏳ Retry - ${interval} second delay"
@@ -161,7 +165,8 @@ function verify_controlplane_state {
     fi
 }
 
-
+# Grab the Kubernetes Services Images and
+# Initialize the Control Plane Cluster
 function controlplane_init {
     # Pull down the Kubernetes images for Control Plane Initialization
     echo "🚜  Pulling Kubernetes execution Images"
@@ -221,6 +226,7 @@ function install_weave_cni {
 }
 
 
+# Install the Flannel CNI (Container Network Interface)
 function install_flannel_cni {
     echo "🚜  Install Flannel CNI Service"
 
