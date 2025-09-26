@@ -236,7 +236,7 @@ worker   Ready    <none>          2m14s   v1.30.x
 
 ### 5. (Optional) Set Role for Worker Node(s)
 
-As the output above shows, there is no inital role set for worker nodes.  You can set their role to "worker" with:
+As the output above shows, there is no initial role set for worker nodes.  You can set their role to "worker" with:
 
 The Kubernetes Dashboard is Web UI that allows you to manage your cluster; configure and manage aspects of the system, troubleshoot, and to have an overview of applications running on your cluster
 

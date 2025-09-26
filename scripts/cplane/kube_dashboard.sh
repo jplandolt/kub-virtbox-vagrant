@@ -19,7 +19,7 @@ function help_msg {
 
 
 # Quick check to see if Helm is installed, as
-# It is used for serice deployments on the Control Plane
+# It is used for service deployments on the Control Plane
 function helm_sanity_check {
     # Is Helm installed?
     echo "🔍 Check for Helm tool on the machine"
@@ -83,7 +83,7 @@ function helm_dashboard_install {
 # Create RBAC credential to access / admin via dashboard
 function dashboard_user_create {
     echo "⚙️  Create user credentials for dashboard"
-    echo "⚙️  First, YAML file to create dashboad admin user"
+    echo "⚙️  First, YAML file to create dashboard admin user"
 
     #
     # This creates the yaml file to instruct k8s in creating the dashboard space and the rbac access
@@ -121,7 +121,7 @@ EOF
 # Retrieve and display the dashboard credentials
 # And the url for login
 function dashboard_user_token {
-    echo "🔍 Retriving the dashboard login token from k8s"
+    echo "🔍 Retrieving the dashboard login token from k8s"
     echo "⚙️  Copy and paste this to the 'Enter token *' field on the dashboard login"
     echo "--------------------------------------------------"
     kubectl -n ${NAMESPACE} create token admin-user

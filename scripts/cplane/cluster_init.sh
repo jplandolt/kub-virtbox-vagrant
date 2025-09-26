@@ -8,7 +8,7 @@
 # important functions, which are:
 #
 # 1. Grab the kubernetes service images
-# 2. Init the service, specifing the base CIDR
+# 2. Init the service, specifying the base CIDR
 # 3. Copy the kube config to the user directory
 # 4. Install the CNI service
 #
@@ -33,7 +33,7 @@
 # 🔄 Restarting
 #
 
-# These varaibles define the Heart of the Cluster: CP ID and IP base for Pods
+# These variables define the Heart of the Cluster: CP ID and IP base for Pods
 #
 # Strip off errant 'localhost-y' reference that get created via vagrant
 API_SERVER_IP=$(echo $(hostname -i | sed -E 's/127\.0\.[0-9]+\.[0-9]+//g'))
@@ -185,7 +185,7 @@ function verify_controlplane_state {
 #   kubeconf_copy      - to use 'kubectl' properly
 #   verify_flannel_cni - to set up cluster communication
 #
-# If you are tring to learn about Starting up a Kubernetes
+# If you are trying to learn about Starting up a Kubernetes
 # Cluster, these are the essential functions
 #
 # If you are interested in creating solid service automation

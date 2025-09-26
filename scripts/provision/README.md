@@ -14,13 +14,13 @@ This project sets up a local Kubernetes cluster using Vagrant and VirtualBox. It
 * Package installation or upgrade
 * Service start / restart
 
-Originally embedded in the project Vagrantfile, the work was separated out into these descrete Bash scripts to provide flexibility and consistency across the nodes.
+Originally embedded in the project Vagrantfile, the work was separated out into these discrete Bash scripts to provide flexibility and consistency across the nodes.
 
 They are designed to make it easier to have a "baseline" installation of a collection of Kubernetes nodes - Control Plane or Worker - and to use the scripts in future projects outside of Vagrant / VirtualBox; provisioning bare metal machines, for example.
 
 <table>
 <tr>
-    <td>🚜&nbsp;provsion_base.sh</td>
+    <td>🚜&nbsp;provision_base.sh</td>
     <td>Install packages and enable services that are on every Kubernetes node, whether Control Plane or Worker node</td>
 </tr>
 <tr>
@@ -39,7 +39,7 @@ These scripts are designed to make it easier to have a "baseline" installation o
 
 ### Ubuntu-Specific
 
-While these scripts are written for Ubuntu, future work could include 'provsion_base_DISTRO.sh' for provisioning on other Linux Distros (e.g. SUSE, RHEL, CentOS)
+While these scripts are written for Ubuntu, future work could include 'provision_base_DISTRO.sh' for provisioning on other Linux Distros (e.g. SUSE, RHEL, CentOS)
 
 ## License
 

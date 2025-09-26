@@ -20,7 +20,7 @@ ALL_NODES = CPLANE_NODES + WORKER_NODES
 ETC_HOSTS = ALL_NODES.map { |n| "#{n[:ip]} #{n[:name]}" }.join("\n") + "\n"
 
 #
-# Wrap the Vagrangt configure up in an "if" clause which allows for
+# Wrap the Vagrant configure up in an "if" clause which allows for
 # both the expected processing of the Vagrantfile via "vagrant",
 # and running of functions (below) with ruby
 #
