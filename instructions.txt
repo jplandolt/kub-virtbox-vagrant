@@ -2,7 +2,7 @@ TO SPEED UP THE PROCESS 1ST RUN in the master NODE:
 - sudo kubeadm config images pull
 
 TO INIT, RUN  in the master NODE:
-- sudo kubeadm init --pod-network-cidr=10.201.0.0/16 --apiserver-advertise-address=192.168.63.11
+- sudo kubeadm init --pod-network-cidr=10.244.0.0/16 --apiserver-advertise-address=192.168.63.11
 - you will get a kubeadm join command run that in you master node after Install the CNI
 
 TO INSTALL CNI (weave):
