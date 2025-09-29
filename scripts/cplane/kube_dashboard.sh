@@ -7,7 +7,7 @@ CPLANE_IP=$(echo $(hostname -i | sed -E 's/127\.0\.[0-9]+\.[0-9]+//g'))
 NAMESPACE="kubernetes-dashboard"
 SERVICE="kubernetes-dashboard"
 DASHBOARD_PORT=32443
-DASHBOARD_SESSION_TIMEOUT=3600 (60 x 60 Seconds; 1 hour)
+DASHBOARD_SESSION_TIMEOUT=3600 # (60 x 60 Seconds; 1 hour)
 
 function help_msg {
     echo ""
