@@ -26,6 +26,7 @@
 # ⬆ Up Arrow
 # ⬇ Down Arrow
 # ❓ Question / Unknown
+# ⚠️ Unexpected
 # 🤷 Something missing
 # 🔥 Creating something
 # 👍 Startup
@@ -133,7 +134,7 @@ function verify_controlplane_state {
             else
                 ksvcdown=y
                 state_str="down / uncertain (state: '${SVC_STATE}')"
-                state_icon="❓ ❌"
+                state_icon="❓ ⚠️"
             fi
 
             printf "  %s Service %-*s: %s\n" "${state_icon}" "${maxlen}" "'${kubsvc}'" "${state_str}"
