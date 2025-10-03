@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-echo "k8s worker join command (requires sudo):"
+echo "Cluster worker join command (requires sudo):"
 echo ""
 echo "--------------------------------------------------"
 echo -n "sudo "
