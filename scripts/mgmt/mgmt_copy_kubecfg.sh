@@ -3,13 +3,13 @@
 cplane_join_cmd=""
 cplane_kube_cfg=kube_cfg.txt
 
-function welcome_msg {
+function welcome_msg() {
     echo ""
     echo "⚙️  Copying Kubernetes Config from the Control Plane"
 }
 
 # Is the Control Plane Ready to accept worker node joins?
-function controlplane_sanity {
+function controlplane_sanity() {
     echo "🔍 Checking state of Control Plane"
     cplane_status=$(vagrant status --machine-readable cplane | grep ',state,' | cut -d',' -f 4)
 
@@ -20,7 +20,7 @@ function controlplane_sanity {
    fi
 }
 
-function copy_kubcfg {
+function copy_kubcfg() {
     echo "⚙️  Getting kube config file from the Control Plane"
     rm -f ${cplane_kube_cfg}
     vagrant ssh cplane -c "sudo cat /etc/kubernetes/admin.conf" | sed $'s/\r$//' > ${cplane_kube_cfg}
@@ -32,7 +32,7 @@ function copy_kubcfg {
 }
 
 
-function verify_kubcfg {
+function verify_kubcfg() {
     echo "🔍 Verify communication with the Control Plane"
 
     echo ""

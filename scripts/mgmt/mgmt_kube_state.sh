@@ -8,7 +8,7 @@
 # Get the IP of the Control Plane
 CPLANE_IP=$(ruby Vagrantfile list_ips cplane)
 
-function cluster_state {
+function cluster_state() {
     if [ "$(wget -qL -O- --no-check-certificate https://${CPLANE_IP}:6443/readyz 2>/dev/null)" == "ok" ]; then
         echo "Kube Control Plane UP"
         echo ""
