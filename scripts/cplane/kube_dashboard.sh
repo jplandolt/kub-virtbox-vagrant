@@ -9,7 +9,7 @@ SERVICE="kubernetes-dashboard"
 DASHBOARD_PORT=32443
 DASHBOARD_SESSION_TIMEOUT=3600 # (60 x 60 Seconds; 1 hour)
 
-function help_msg {
+function help_msg() {
     echo ""
     echo "usage: ${0} [worker|cplane|token], where:"
     echo "    worker - Deploy dashboard on any worker node"
@@ -18,10 +18,9 @@ function help_msg {
     echo ""
 }
 
-
 # Quick check to see if Helm is installed, as
 # It is used for service deployments on the Control Plane
-function helm_sanity_check {
+function helm_sanity_check() {
     # Is Helm installed?
     echo "🔍 Check for Helm tool on the machine"
     if ! command -v helm >/dev/null 2>&1; then
@@ -31,8 +30,53 @@ function helm_sanity_check {
 }
 
 
+# Install of Kubernetes Dashboard via the Helm Chart
+# (Which is now the official deployment method)
+function helm_dashboard_install() {
+    echo "⚙️  Installing Kubernetes Dashboard (via helm)"
+    echo "⚙️  Add kubernetes-dashboard Helm repository"
+    helm repo add kubernetes-dashboard https://kubernetes.github.io/dashboard/
+
+    echo "⚙️  Deploy '${SERVICE}' Helm chart"
+    helm upgrade --install ${SERVICE} kubernetes-dashboard/kubernetes-dashboard \
+        --create-namespace --namespace ${NAMESPACE} \
+        --set "args[0]=--token-ttl=${DASHBOARD_SESSION_TIMEOUT}"
+
+# These Helm Params do not appear to do the correct work
+#        --set service.nodePort=${DASHBOARD_PORT} \
+#        --set service.type=NodePort \
+#
+
+    echo "😄  NOTE:"
+    echo "    The IP Address and Port for the Kubernetes Dashboard"
+    echo "    Will change below as a NodePort is configured"
+    echo "    So ignore the value above"
+    echo ""
+
+    echo "⚙️  Apply recommended manifests from the upstream project:"
+    kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
+
+    if [ "${1,,}" == "cplane" ] ; then
+        echo "⚙️  Relaxing restriction (taint) on the control plane for '${SERVICE}'"
+
+        # remove taint for the dashboard (only):
+        echo "⚙️  Relaxing restriction (taint) on the control plane for '${SERVICE}'"
+        kubectl -n ${NAMESPACE} patch deployment ${SERVICE} \
+            --type='json' \
+            -p='[{"op":"add","path":"/spec/template/spec/tolerations","value":[{"key":"node-role.kubernetes.io/control-plane","effect":"NoSchedule"}]}]'
+#           -p='[{"op":"add","path":"/spec/template/spec/tolerations","value":[{"key":"node-role.kubernetes.io/control-plane","operator":"Exists","effect":"NoSchedule"}]}]'
+
+        echo "🔍 Updated Control Plane restrictions (Taints)"
+        # should see "Taints: node-role.kubernetes.io/control-plane:NoSchedule"
+        kubectl describe node cplane | grep Taints
+        echo ""
+
+    fi
+}
+
+
 # Is the dashboard service up and running?
-function dashboard_sanity_check {
+function dashboard_sanity_check() {
     echo "🔍 Checking if Service '${SERVICE}' exists in namespace '${NAMESPACE}'..."
     if ! kubectl get svc -n "${NAMESPACE}" "${SERVICE}" >/dev/null 2>&1; then
         echo "❌ Service ${SERVICE} NOT found in namespace ${NAMESPACE}"
@@ -42,54 +86,22 @@ function dashboard_sanity_check {
     fi
 }
 
+# Dashboard url for login
+function dashboard_nodeport_url() {
+    # Extract the Svc IP and NodePort IP from Kubernetes itself (via Kubectl)
+    host_ip=$(  kubectl get pod -n ${NAMESPACE} -o json 2>/dev/null | jq -r --arg svc_sel "${SERVICE}" '.items[] | select(.metadata.labels["k8s-app"] == $svc_sel) | .status.hostIP')
+    node_port=$(kubectl get svc -n ${NAMESPACE} -o json 2>/dev/null | jq -r --arg svc_sel "${SERVICE}" '.items[] | select(.metadata.name == $svc_sel) | .spec.ports[].nodePort')
 
-# Configure the control plane to be the home of the Kubernetes Dashboard
-# This is just fine for a small deployment for development, however proper
-# HA configuration should be used for a larger cluster
-function dashboard_on_control_plane {
-    echo "⚙️  Configuring Control Plane to host the dashboard (as opposed to a worker)"
-    echo "🔍 Current Control Plane restrictions (Taints) - likely only 'NoSchedule'"
-
-    # should see "Taints: node-role.kubernetes.io/control-plane:NoSchedule"
-    kubectl describe node cplane | grep Taints
-
-    # remove taint for the dashboard (only):
-    echo "⚙️  Relaxing restriction (taint) on the control plane for '${SERVICE}'"
-    kubectl -n ${NAMESPACE} patch deployment ${SERVICE} \
-        --type='json' \
-        -p='[{"op":"add","path":"/spec/template/spec/tolerations","value":[{"key":"node-role.kubernetes.io/control-plane","effect":"NoSchedule"}]}]'
-
-    echo "🔍 Updated Control Plane restrictions (Taints)"
-    # should see "Taints: node-role.kubernetes.io/control-plane:NoSchedule"
-    kubectl describe node cplane | grep Taints
-    echo ""
-}
-
-
-# Install of Kubernetes Dashboard via the Helm Chart
-# (Which is now the official deployment method)
-function helm_dashboard_install {
-    echo "⚙️  Installing Kubernetes Dashboard (via helm)"
-    echo "⚙️  Add kubernetes-dashboard Helm repository"
-    helm repo add kubernetes-dashboard https://kubernetes.github.io/dashboard/
-
-    echo "⚙️  Deploy 'kubernetes-dashboard' Helm chart"
-    helm upgrade --install ${SERVICE} kubernetes-dashboard/kubernetes-dashboard --create-namespace --namespace ${NAMESPACE}
-
-    echo "⚙️  Apply recommended manifests from the upstream project:"
-    kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
+    echo -n "https://${host_ip}:${node_port}"
 }
 
 
 # Create RBAC credential to access / admin via dashboard
-function dashboard_user_create {
+function dashboard_user_create() {
     echo "⚙️  Create user credentials for dashboard"
     echo "⚙️  First, YAML file to create dashboard admin user"
 
-    #
-    # This creates the yaml file to instruct k8s in creating the dashboard space and the rbac access
     # Do NOT modify or change the spacing between these lines!
-    #
     # ----------------------------------------------
     cat > dashboard-adminuser.yaml << EOF
 apiVersion: v1
@@ -121,7 +133,7 @@ EOF
 
 # Specific the specific port for the Dashboard
 # NodePort will otherwise choose a random port
-function dashboard_port_forward {
+function dashboard_nodeport() {
     echo "⚙️  Setting up dashboard access via NodePort, port ${DASHBOARD_PORT}"
     kubectl -n ${NAMESPACE} patch svc ${SERVICE} --type='json' -p="[
         {\"op\":\"replace\",\"path\":\"/spec/type\",\"value\":\"NodePort\"},
@@ -129,19 +141,16 @@ function dashboard_port_forward {
     ]"
 
     if [ ${?} -eq 0 ]; then
-        echo "✅ Dashboard is now exposed at: https://${CPLANE_IP}:${DASHBOARD_PORT}/"
+        echo "✅ Dashboard is now exposed at port ${DASHBOARD_PORT}"
     else
         echo "❌ Failed to patch the Service"
         exit 1
     fi
-
-    echo "🔍 New Assigned NodePort:"
-    kubectl -n ${NAMESPACE} get svc ${SERVICE}
 }
 
 
 # Adjust the session timeout (which is quite short)
-function dashboard_session_timeout {
+function dashboard_session_timeout() {
     echo "⚙️  Adjusting Kubernetes Dashboard session timeout (${DASHBOARD_SESSION_TIMEOUT} seconds)"
 
     kubectl -n ${NAMESPACE} patch deployment ${SERVICE} --type='json' -p="[
@@ -157,7 +166,7 @@ function dashboard_session_timeout {
 }
 
 # Verify Kubernetes Dashboard available
-function verify_kube_dashboard {
+function verify_kube_dashboard() {
     # Verify that CNI service is running
     timeout=60 # 2 minutes = 120 seconds
     interval=10 # check every 10 seconds
@@ -184,7 +193,7 @@ function verify_kube_dashboard {
         fi
     done
 
-    if [ ${dashboard_state} == "Running" ]; then
+    if [ "${dashboard_state}" == "Running" ]; then
         echo "✅ Kubernetes Dashboard is running"
     else
         echo "❌ Timed out during check - Kubernetes Dashboard is NOT running"
@@ -194,14 +203,14 @@ function verify_kube_dashboard {
 
 
 # Retrieve and display the dashboard credentials
-# And the url for login
-function dashboard_user_token {
+function dashboard_user_token() {
     echo "🔍 Retrieving the dashboard login token from k8s"
     echo "⚙️  Copy and paste this to the 'Enter token *' field on the dashboard login"
     echo "--------------------------------------------------"
     kubectl -n ${NAMESPACE} create token admin-user
     echo "--------------------------------------------------"
-    echo "Dashboard is at: https://${CPLANE_IP}:${DASHBOARD_PORT}"
+
+    echo "☸️ Kubernetes Dashboard is at: $(dashboard_nodeport_url)"
     echo ""
 }
 
@@ -220,17 +229,18 @@ fi
 
 if [[ ${param_str} = @(worker|cplane) ]]; then
     helm_sanity_check
-    helm_dashboard_install
-    dashboard_sanity_check
 
-    # cplane only
+    # regular or "on the cplane" install
     if [ "${param_str}" == "cplane" ]; then
-        dashboard_on_control_plane
+        helm_dashboard_install cplane
+    else
+        helm_dashboard_install
     fi
 
+    dashboard_sanity_check
     dashboard_user_create
-    dashboard_port_forward
-    dashboard_session_timeout
+    dashboard_nodeport
+#    dashboard_session_timeout
     verify_kube_dashboard
 fi
 
