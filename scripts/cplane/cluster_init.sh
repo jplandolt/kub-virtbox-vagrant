@@ -41,7 +41,7 @@ API_SERVER_IP=$(echo $(hostname -i | sed -E 's/127\.0\.[0-9]+\.[0-9]+//g'))
 POD_BASE_CIDR=10.244.0.0 # Base address for pods
 
 # Hey, howzitgoing
-function welcome_msg {
+function welcome_msg() {
     echo "Kubernetes Control Plane / Cluster Init"
     echo ""
     echo "POD_BASE_CIDR: '${POD_BASE_CIDR}'"
@@ -51,7 +51,7 @@ function welcome_msg {
 
 
 # Quick check to see if Kubernetes utilities are installed
-function kube_sanity_check {
+function kube_sanity_check() {
     # Are Kubernetes tools installed?
     echo "🔍 Check for kubernetes tools on the machine"
 
@@ -76,7 +76,7 @@ function kube_sanity_check {
 # Param 1 - "up" or "down"
 # Param 2 - optional - "retry" for a retry loop, useful
 #           for when services are taking time to come up/down
-function verify_controlplane_state {
+function verify_controlplane_state() {
     D_SOC=unix:///var/run/containerd/containerd.sock
 
     state_check="${1,,}"
@@ -194,7 +194,7 @@ function verify_controlplane_state {
 #
 
 # Initialize the Control Plane Cluster
-function controlplane_init {
+function controlplane_init() {
     # Pull down the Kubernetes images for Control Plane Initialization
     echo "🚜  Pulling Kubernetes execution Images"
     echo "--------------------------------------"
@@ -210,7 +210,7 @@ function controlplane_init {
 
 
 # Copy the k8s admin.conf into the user directory for subsequent use
-function kubeconf_copy {
+function kubeconf_copy() {
     if [ -f /etc/kubernetes/admin.conf ] ; then
         echo "⚙️  Create local '.kube/config'"
         mkdir -p ${HOME}/.kube
@@ -221,7 +221,7 @@ function kubeconf_copy {
 
 
 # Install the Flannel CNI (Container Network Interface)
-function install_flannel_cni {
+function install_flannel_cni() {
     echo "🚜  Install Flannel CNI Service"
 
     # The Prepackaged Flannel CNI is hard coded to use CIDR of 10.244.0.0/16
@@ -243,7 +243,7 @@ function install_flannel_cni {
 
 
 # Verify the Flannel CNI Installation
-function verify_flannel_cni {
+function verify_flannel_cni() {
     echo "🔍 Verify Flannel CNI Service Install"
 
     # Verify that CNI service is running
@@ -283,7 +283,7 @@ function verify_flannel_cni {
 
 # Install the Weave CNI (Container Network Interface)
 # NOTE: Weave Project was Shuttered in June 2024 and no longer supported
-function install_weave_cni {
+function install_weave_cni() {
     echo "🚜  Install Weave CNI Service"
     echo "--------------------------------------"
     kubectl apply -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s.yaml --validate=false
@@ -292,7 +292,7 @@ function install_weave_cni {
 
 
 # Verify the Weave CNI Installation
-function verify_weave_cni {
+function verify_weave_cni() {
     echo "🔍 Verify Weave CNI Service Install"
 
     # Verify that CNI service is running
@@ -329,7 +329,7 @@ function verify_weave_cni {
 
 
 # Install the Rancher LocalPath StorageClass implementation
-function install_localpath_storageclass {
+function install_localpath_storageclass() {
     echo "🚜  Install Rancher 'local-path' StorageClass"
     echo "--------------------------------------"
     kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/v0.0.32/deploy/local-path-storage.yaml --validate=false
