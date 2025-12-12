@@ -47,10 +47,9 @@ function helm_dashboard_install() {
 #        --set service.type=NodePort \
 #
 
-    echo "😄  NOTE:"
-    echo "    The IP Address and Port for the Kubernetes Dashboard"
-    echo "    Will change below as a NodePort is configured"
-    echo "    So ignore the value above"
+    echo "😄  NOTE: The IP Address and Port for the Kubernetes"
+    echo "    Dashboard will change below as a NodePort is configured"
+    echo "    So ignore the above url value"
     echo ""
 
     echo "⚙️  Apply recommended manifests from the upstream project:"
@@ -210,7 +209,7 @@ function dashboard_user_token() {
     kubectl -n ${NAMESPACE} create token admin-user
     echo "--------------------------------------------------"
 
-    echo "☸️ Kubernetes Dashboard is at: $(dashboard_nodeport_url)"
+    echo "☸️  Kubernetes Dashboard is at: $(dashboard_nodeport_url)"
     echo ""
 }
 
