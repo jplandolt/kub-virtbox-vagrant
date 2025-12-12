@@ -1,3 +1,8 @@
+#
+# vagrant up
+# vagrant destroy [-f]
+#
+
 # Configuration parameters
 VAGRANT_BASE_OS = "bento/ubuntu-24.04"
 PRIVATE_NETWORK = "private_network"    # For Host -> VM and VM <-> VM (within the network)
