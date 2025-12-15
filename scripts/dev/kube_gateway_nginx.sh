@@ -19,6 +19,9 @@ NAMESPACE=nginx-gateway
 SERVICE=ngf
 HELM_CHART=nginx-gateway-fabric
 
+# Options to ignore ssl cert errors
+CURL_OPTS="--insecure"
+
 # Create the namespace for everything else
 function create_gateway_namespace() {
     echo "⚙️  Create Gateway namespace"
@@ -38,7 +41,7 @@ function cert_manager_install() {
     CERT_HELM_CHART=cert-manager
 
     echo "🚜  Pulling '${CERT_SERVICE}' Command Line Tool from GitHub"
-    curl -fsSL -o cmctl https://github.com/cert-manager/cmctl/releases/latest/download/cmctl_linux_amd64
+    curl ${CURL_OPTS} -fsSL -o cmctl https://github.com/cert-manager/cmctl/releases/latest/download/cmctl_linux_amd64
 
     echo "🛠   Set up '${CERT_SERVICE}' Command Line Tool"
     sudo chmod +x cmctl
@@ -213,3 +216,4 @@ create_certificates
 verify_secrets_created
 nginx_gateway_api_resources_install
 nginx_gateway_install
+

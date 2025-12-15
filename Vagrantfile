@@ -33,9 +33,11 @@ if defined?(Vagrant)
   Vagrant.configure("2") do |config|
     # Define Control Plane Nodes
     CPLANE_NODES.each do |node|
+      config.vm.box_download_insecure = true
       config.vm.define node[:name] do |cplane|
         cplane.vm.box = node[:box]
         cplane.vm.network node[:network], ip: node[:ip]
+
         cplane.vm.hostname = node[:name]
         cplane.vm.provider "virtualbox" do |v|
           v.name = node[:name]
@@ -56,6 +58,7 @@ if defined?(Vagrant)
 
     # Define Worker Nodes
     WORKER_NODES.each do |node|
+      config.vm.box_download_insecure = true
       config.vm.define node[:name] do |worker|
         worker.vm.box = node[:box]
         worker.vm.network node[:network], ip: node[:ip]

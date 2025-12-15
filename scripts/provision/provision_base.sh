@@ -9,6 +9,10 @@
 #   - provision_worker.sh
 #
 
+# Options to ignore ssl cert errors
+APT_OPTS="-o Acquire::https::Verify-Peer=false"
+CURL_OPTS="--insecure"
+
 # Add Node Host Name / IP Address to /etc/hosts
 if [[ -n "${ETC_HOSTS}" ]]; then
   sudo echo "# Added by Vagrant" >> /etc/hosts
@@ -29,10 +33,11 @@ if [ "$(lsmod | grep br_netfilter)" == "" ]; then
 fi
 
 # Apt Stuff for Docker Install
-sudo apt update
-sudo apt install ca-certificates curl
+sudo apt update  ${APT_OPTS}
+sudo apt install ${APT_OPTS} ca-certificates curl
 sudo install -m 0755 -d /etc/apt/keyrings
-sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo curl ${CURL_OPTS} -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+
 sudo chmod a+r /etc/apt/keyrings/docker.asc
 
 # Install Docker and ContainerD as the container management tool
@@ -41,21 +46,21 @@ echo \
   "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
   $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
   sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-sudo apt update
-sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo apt update  ${APT_OPTS}
+sudo apt install ${APT_OPTS} -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 sudo systemctl enable docker
 sudo ufw disable
 sudo swapoff -a
-sudo apt update && sudo apt install -y apt-transport-https
-curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
-sudo apt update
+sudo apt update ${APT_OPTS} && sudo apt install ${APT_OPTS} -y apt-transport-https
+curl ${CURL_OPTS} -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+sudo apt update  ${APT_OPTS}
 
 # Install the main Kubernetes components
-sudo apt install -y ca-certificates curl gpg
-curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+sudo apt install ${APT_OPTS} -y ca-certificates curl gpg
+curl ${CURL_OPTS} -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
 echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
-sudo apt update
-sudo apt install -y kubelet kubeadm kubectl
+sudo apt update  ${APT_OPTS}
+sudo apt install ${APT_OPTS} -y kubelet kubeadm kubectl
 sudo apt-mark hold kubelet kubeadm kubectl
 sudo systemctl enable --now kubelet
 
